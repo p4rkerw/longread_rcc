@@ -55,7 +55,7 @@ echo "  {"
 echo "    \"data format\": \"fastq\""
 echo "  },"
 echo "  {"
-echo "    \"name\": \"RAGE24_LongRead\","
+echo "    \"name\": \"isoquant\","
 
 # Add long read file paths
 echo "    \"long read files\": ["
@@ -92,14 +92,26 @@ echo "]"
 ref_genome=reference/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 ref_gtf=reference/gencode.v45.annotation.gtf.gz
 output_dir=longread_rcc/isoquant
-num_threads=8
+num_threads=12
 output_config=longread_rcc/isoquant_config.json
+
+# Extract chromosome names from the FASTA
+gzip -dc reference/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz | grep "^>"  | sed 's/>//' | sort > /tmp/genome_chroms.txt
+
+# Extract chromosome names from the GTF
+gzip -dc $ref_gtf | cut -f1 | sort | uniq > /tmp/gtf_chroms.txt
+
+# Compare
+diff /tmp/genome_chroms.txt /tmp/gtf_chroms.txt 
+
+# strip chr prefix from contigs to match assembly
+gzip -dc $ref_gtf | sed 's/^chr//' | gzip > reference/gencode.v44.annotation.nochr.gtf.gz
 
 isoquant.py \
     -d ont \
     --yaml $output_config \
     --reference $ref_genome \
-    --genedb $ref_gtf \
+    --genedb reference/gencode.v44.annotation.nochr.gtf.gz \
     --complete_genedb \
     --output $output_dir \
     --report_novel_unspliced false \
@@ -107,5 +119,8 @@ isoquant.py \
     --count_exons \
     --check_canonical \
     --sqanti_output \
-    --threads $num_threads
+    --threads $num_threads 
+
+
+   
 ```
